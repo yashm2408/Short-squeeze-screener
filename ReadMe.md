@@ -1,104 +1,131 @@
-# 🧠 Stock Screener with Sentiment Analysis
+﻿# Short Squeeze Screener
 
-A live short squeeze screener that pulls real-time data from Finviz Elite, applies AI-driven news sentiment classification, and auto-calculates price targets and stop-losses.
-
----
-
-## 🚀 Features
-
-- ✅ Real-time Finviz Elite integration
-- ✅ Custom filters for float, price, % change, short float, and relative volume
-- ✅ AI-powered sentiment analysis on breaking news headlines
-- ✅ Color-coded GUI with Prime vs Subprime setup detection
-- ✅ Automatic logging of top setups
-- ✅ Target and stop-loss calculation using volatility and RSI
-- ✅ Loadable stock graphs reflecting live data
-- ✅ Breaking News Tab that displays articles in real time with predicted positive impact
+A live short squeeze screener that scans stocks every 60 seconds, scores them on a two-axis Pressure/Ignition model, and displays results in a color-coded Tkinter desktop app.
 
 ---
 
-## ⚠️ Common Troubleshooting Issues
+## What It Does
 
-- If there is an issue with the breaking news not loading make sure that in the sentiment.py file the MODEL_PATH, VECTORIZER_PATH, and LABELED_DATA_PATH are all mapped correctly (Lines 8-10). If necessary map them using each file's absolute path. 
+- Pulls ~1,500 stocks from Finviz Elite and narrows them to ~50 candidates using a Stage-1 pre-filter (float, price, short interest, relative volume)
+- Fetches real-time Cost-to-Borrow and shortability data from Interactive Brokers
+- Computes a live SI% estimate by layering daily FINRA short volume data on top of the official FINRA settlement number
+- Scores every candidate on two independent axes:
+  - **Pressure** (SI%, Days-to-Cover, Cost-to-Borrow, Shortability, Short Volume%) -- how explosive could this be?
+  - **Ignition** (Relative Volume, Price Change%, TTM Squeeze signal) -- is it firing right now?
+- Classifies each stock as **Prime** (loaded + firing), **Subprime** (loaded or firing), or drops it
+- Runs news sentiment classification using a TF-IDF + RandomForest model trained on labeled headlines
+- Displays a 3D correlation scatter plot (Official SI% vs Live SI% vs Relative Volume)
+- Logs all Prime setups to `data/prime_log.csv`
+- Lets you export the full screener table to CSV
 
+---
 
-## 📦 Installation
+## Project Structure
 
-1. Clone or download the repo  
-2. Create virtual environment *(optional but recommended)*  
-3. Install requirements:
-    In your terminal run
-        pip install -r requirements.txt
-    - This app uses Tkinter for the GUI. Tkinter comes pre-installed with most Python distributions.
-    If you're on Linux and it's missing, install it via:
-        Debian/Ubuntu: sudo apt-get install python3-tk
-        Fedora: sudo dnf install python3-tkinter
-
-- Tested on Python 3.10
-
-## ▶️ Running the App
-
-run file: main.py
-    Make sure you’ve added your Finviz Elite API key in core/finviz_api.py. line 7
-
-* Finviz Elite Membership Required for API token
-
-## 📁 Project Structure
-
+```
 ScreenerProject/
 ├── core/
-│   ├── filters.py
-│   ├── finviz_api.py
-│   └── sentiment.py
+│   ├── finviz_api.py       # Finviz Elite data fetch
+│   ├── filters.py          # Stage-1 candidate pre-filter
+│   ├── ibkr_api.py         # IBKR borrow data + TTM bars (rate-limited)
+│   ├── setup_classifier.py # Pressure/Ignition scoring + Prime/Subprime classification
+│   ├── si_estimate.py      # Live SI% estimator using FINRA short volume
+│   ├── ttm_squeeze.py      # TTM Squeeze indicator (Bollinger vs Keltner)
+│   ├── sentiment.py        # News headline sentiment classifier
+│   ├── short_volume.py     # FINRA short volume loader
+│   ├── squeeze_score.py    # Composite squeeze score
+│   └── yfinance_short.py   # yfinance fallback for short data
 ├── controller/
-│   └── controller.py
+│   └── controller.py       # Orchestrates fetching, enrichment, classification
 ├── ui/
-│   └── view.py
-├── model/
-│   ├── sentiment_model.pkl
-│   └── sentiment_vectorizer.pkl
+│   └── view.py             # Tkinter GUI (screener table, charts, news tab)
+├── tools/
+│   ├── calibrate_si.py     # Fits the SI% dampening constant against FINRA history
+│   └── backtest_setups.py  # Backtests Prime/Subprime classification on historical squeezes
 ├── tests/
-│   └── test_filters.py
+│   ├── test_filters.py
+│   ├── test_si_estimate.py
+│   └── test_ttm_squeeze.py
 ├── data/
-│   ├── labeled_data.csv
-│   └── prime_log.csv
-├── main.py
+│   ├── labeled_data.csv    # Training data for sentiment model
+│   └── si_calibration.json # Fitted dampening constants (output of calibrate_si.py)
+├── model/                  # Saved sentiment model (auto-generated on first run)
+├── main.py                 # Entry point
 ├── requirements.txt
-└── README.md
+└── .env                    # API keys (not committed -- see .env.example)
+```
 
+---
 
-## ⚙️ Filter Logic
-Price: $2–$20
+## Setup
 
-Float: < 20M
+### 1. Prerequisites
 
-Change: ≥ +10%
+- Python 3.10+
+- **Interactive Brokers TWS or IB Gateway** running locally on port 7497 (paper trading account works)
+- **Finviz Elite** subscription
 
-Relative Volume: ≥ 5.0
+### 2. Install dependencies
 
-Short Float: ≥ 5%
+```bash
+pip install -r requirements.txt
+```
 
+Tkinter is included with most Python installations. If you are on Linux and it is missing:
 
-## 🧠 Sentiment Model
-Uses RandomForestClassifier
+```bash
+sudo apt-get install python3-tk
+```
 
-Headlines vectorized with TF-IDF
+### 3. Configure API keys
 
-Confidence score and sentiment label applied per headline
+Copy `.env.example` to `.env` and fill in your credentials:
 
-## 🗃️ Logging
-Logs all 5/5 Prime setups to:
+```bash
+cp .env.example .env
+```
 
-logs/prime_log.csv
-Ensures no duplicate ticker is logged more than once per day.
+### 4. Run
 
-## 📈 Target / Stop-Loss Formula
-Target = 0.7 × Volatility + 0.03 × (70 - RSI)
+```bash
+python main.py
+```
 
-Stop = 0.3 × Volatility - 0.02 × (RSI - 50)
+The app connects to IBKR and begins scanning. The screener table populates within the first 60-second refresh cycle. IBKR borrow data and TTM Squeeze values may take 1-2 additional cycles to fully populate.
 
-## 👨‍💻 Author
-Built by William Gray as part of an internship/independent research project using Finviz Elite, Python, and machine learning.
+---
 
-# 📝 License
-Free to use and modify.
+## How the Scoring Works
+
+### Pressure Score (0-100)
+
+Measures structural short squeeze fuel. Weighted blend of:
+
+- SI% (45%) -- dominant fuel
+- Days-to-Cover (20%)
+- Cost-to-Borrow (15%)
+- Shortability (10%)
+- Short Volume% (10%)
+
+Float size applies a multiplier: tight float amplifies pressure, large float dampens it.
+
+### Ignition Score (0-100)
+
+Measures whether a squeeze is actively firing:
+
+- Relative Volume (40%)
+- Price Change% -- up moves only (40%)
+- TTM Squeeze signal (20%)
+
+### Classification
+
+- **Prime**: Pressure >= 55 AND Ignition >= 50
+- **Subprime**: Several paths -- loaded with early spark, lighter fuel but clearly firing, or extremely heavy short interest
+
+---
+
+## Notes
+
+- The `.env` file contains your API keys and is gitignored -- never commit it
+- IBKR must be running before launching the app; if not connected, borrow data and TTM columns show `--`
+- The sentiment model is auto-trained and saved on first run if `model/` is empty

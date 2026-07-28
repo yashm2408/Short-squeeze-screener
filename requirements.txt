@@ -4,5 +4,9 @@ joblib
 textblob
 yfinance
 matplotlib
-requests
+curl_cffi
+python-dotenv
 playsound==1.2.2
+ib_insync
+numpy
+requests

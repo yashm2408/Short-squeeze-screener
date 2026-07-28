@@ -4,10 +4,13 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.ensemble import RandomForestClassifier
 from textblob import TextBlob
 
-# Paths to model, vectorizer, and labeled training data
-MODEL_PATH = "ScreenerProject/model/sentiment_model.pkl"
-VECTORIZER_PATH = "ScreenerProject/model/sentiment_vectorizer.pkl"
-LABELED_DATA_PATH = "ScreenerProject/data/labeled_data.csv"
+import os as _os
+_HERE = _os.path.dirname(_os.path.abspath(__file__))
+_BASE = _os.path.join(_HERE, "..")
+
+MODEL_PATH = _os.path.join(_BASE, "model", "sentiment_model.pkl")
+VECTORIZER_PATH = _os.path.join(_BASE, "model", "sentiment_vectorizer.pkl")
+LABELED_DATA_PATH = _os.path.join(_BASE, "data", "labeled_data.csv")
 
 # Classifies a list of headlines using trained model and returns predictions + sentiment score
 def classify_headlines(headlines, model, vectorizer):
