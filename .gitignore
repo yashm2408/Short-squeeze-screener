@@ -20,6 +20,7 @@ logs/
 # Data you don't want public (keep prime_log private; allow labeled_data)
 data/*
 !data/labeled_data.csv
+!data/si_calibration.json
 
 # OS/Editor cruft
 .DS_Store

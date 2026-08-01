@@ -1,0 +1,38 @@
+{
+  "fitted_at": "2026-07-19",
+  "windows": 8,
+  "settlements": [
+    "2026-02-27",
+    "2026-06-30"
+  ],
+  "n_obs": 944,
+  "signal_correlation": 0.1979,
+  "k_pooled": 0.36,
+  "max_daily_turnover_cap": 3.0,
+  "symbols_with_float": 113,
+  "buckets": [
+    {
+      "max_adv": 1000000,
+      "k": 0.07,
+      "n": 324,
+      "mae": 0.0335
+    },
+    {
+      "max_adv": 10000000,
+      "k": 0.4,
+      "n": 387,
+      "mae": 0.0378
+    },
+    {
+      "max_adv": null,
+      "k": 0.06,
+      "n": 233,
+      "mae": 0.0535
+    }
+  ],
+  "metrics": {
+    "median_relative_error_naive": 0.0419,
+    "median_relative_error_k025": 0.0405,
+    "median_relative_error_fitted": 0.0393
+  }
+}
